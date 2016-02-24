@@ -6,8 +6,11 @@ import akka.actor.{Actor, Props}
 import com.daxzel.nestdest.HeaterState.HeaterState
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 
 case class HeaterInfo(previousState: HeaterState, lastUpdateDate: LocalDateTime)
+
+case class UpdateStatusTick()
 
 object CalculatorActor {
   def props(): Props = Props(new CalculatorActor())
@@ -15,9 +18,13 @@ object CalculatorActor {
 
 class CalculatorActor() extends Actor {
 
-  val heatersInfo = mutable.HashMap[String, HeaterInfo]()
+  var heatersInfo = Map[String, HeaterInfo]()
 
   val utilityCosts = mutable.HashMap[HeaterState, Int]()
+
+  //to add GUI for that
+  utilityCosts += (HeaterState.Heating -> 30)
+  utilityCosts += (HeaterState.Cooling -> 10)
 
   def secondsPast(firstDate: LocalDateTime, secondDate: LocalDateTime): Int =
     secondDate.getSecond - firstDate.getSecond
@@ -25,7 +32,6 @@ class CalculatorActor() extends Actor {
   def calculateSpending(
                          utilityCosts: mutable.HashMap[HeaterState, Int],
                          oldHeaterInfo: Option[HeaterInfo],
-                         status: HeaterState,
                          updateDateTime: LocalDateTime): Int =
     oldHeaterInfo match {
       case Some(HeaterInfo(HeaterState.Off, _)) => 0
@@ -38,8 +44,22 @@ class CalculatorActor() extends Actor {
 
   def receive = {
     case ThermostatHeaterStateUpdate(id: String, status: HeaterState) => {
-      calculateSpending(utilityCosts, heatersInfo.get(id), status, LocalDateTime.now())
+      val newDateTime = LocalDateTime.now()
+      calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime)
+      heatersInfo += (id -> HeaterInfo(status, newDateTime))
+    }
+    case _: UpdateStatusTick => {
+      val newDateTime = LocalDateTime.now()
+      heatersInfo = heatersInfo.mapValues((heaterInfo) => {
+        calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime)
+        HeaterInfo(heaterInfo.previousState, newDateTime)
+      })
     }
   }
 
+  import scala.concurrent.duration._
+  import ExecutionContext.Implicits.global
+
+  val cancellable = context.system.scheduler.schedule(5 seconds, 5 seconds, context.self,
+    UpdateStatusTick())
 }

@@ -23,6 +23,7 @@ class MainActor(firebaseURL: String, accessToken: String) extends Actor {
   val nestActor = context.actorOf(NestActor.props(accessToken, firebaseURL))
 
   def receive = {
+    case stateUpdateMessage: ThermostatHeaterStateUpdate => calculatorActor ! stateUpdateMessage
     case message => println("Received " + message)
   }
 }
