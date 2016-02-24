@@ -1,4 +1,4 @@
-package com.nestlabs.twest
+package com.daxzel.nestdest
 
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory

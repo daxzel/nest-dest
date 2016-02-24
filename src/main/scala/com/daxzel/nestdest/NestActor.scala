@@ -1,8 +1,9 @@
-package com.nestlabs.twest
+package com.daxzel.nestdest
 
-import akka.actor.{Props, Actor}
-import com.firebase.client.{DataSnapshot, FirebaseError, ValueEventListener, Firebase}
+import akka.actor.{Actor, Props}
 import com.firebase.client.Firebase.AuthListener
+import com.firebase.client.{DataSnapshot, Firebase, FirebaseError, ValueEventListener}
+
 import scala.collection.mutable.HashMap
 
 object NestActor {
@@ -12,10 +13,8 @@ object NestActor {
 class NestActor(accessToken: String, firebaseURL: String) extends Actor {
   val fb = new Firebase(firebaseURL)
 
-  val onlineStates = HashMap[String, HashMap[String, String]]()
-  val ttStates = HashMap[String, HashMap[String, String]]()
+  val hvacStates = HashMap[String, HashMap[String, String]]()
   val structureStates = HashMap[String, String]()
-  var firstStruct: String = null
   val structMap = HashMap[String, String]()
 
   // authenticate with our current credentials
@@ -46,7 +45,7 @@ class NestActor(accessToken: String, firebaseURL: String) extends Actor {
   })
 
   def receive = {
-    case s: DataSnapshot => {
+    case s: DataSnapshot =>
       try {
         import scala.collection.JavaConversions._
 
@@ -61,7 +60,7 @@ class NestActor(accessToken: String, firebaseURL: String) extends Actor {
             structMap += (struct.getName() -> structName)
             // now compare states and send an update if they changed
             val structState = struct.child("away").getValue.toString
-            val oldState = structureStates.get(structName).getOrElse("n/a")
+            val oldState = structureStates.getOrElse(structName, "n/a")
             structureStates += (structName -> structState)
             if (!oldState.equals("n/a") && !oldState.equals(structState)) {
               context.parent ! StructureUpdate(structName, structState)
@@ -75,28 +74,23 @@ class NestActor(accessToken: String, firebaseURL: String) extends Actor {
         if (therms != null && therms.getChildren != null) {
           therms.getChildren.foreach { therm =>
             val structId = therm.child("structure_id").getValue.toString
-            val thermId = therm.getName()
-            val location = therm.child("name").getValue.toString
-            val targetTemp = therm.child("target_temperature_f").getValue.toString
-            val onlineStatus = therm.child("is_online").getValue.toString
+            val thermId = therm.getName
+            val hvacState = therm.child("hvac_state").getValue.toString
 
             def diffAndSend(stateMap: HashMap[String, HashMap[String, String]],
                             statusType: String,
                             status: String) {
-              if (!stateMap.get(structId).isDefined) {
+              if (stateMap.get(structId).isEmpty) {
                 stateMap += (structId -> HashMap[String, String]())
               }
-              val oldState = stateMap(structId).get(thermId).getOrElse("n/a")
+              val oldState = stateMap(structId).getOrElse(thermId, "n/a")
               if (!oldState.equals("n/a") && !oldState.equals(status)) {
-                context.parent ! ThermostatStateUpdate(structId, location, statusType, status)
-
-                //context.parent ! DeviceStateUpdate(structMap(structId), "Thermostat", location, statusType, status)
+                context.parent ! ThermostatHeaterStateUpdate(thermId, HeaterState.get(status))
               }
               stateMap(structId) += (thermId -> status)
             }
 
-            diffAndSend(ttStates, "target_temp", targetTemp)
-            diffAndSend(onlineStates, "online", onlineStatus)
+            diffAndSend(hvacStates, "hvac_state", hvacState)
           }
         }
       } catch {
@@ -105,7 +99,6 @@ class NestActor(accessToken: String, firebaseURL: String) extends Actor {
           e.printStackTrace()
         }
       }
-    }
 
     case e: FirebaseError => {
       println("got firebase error " + e)
