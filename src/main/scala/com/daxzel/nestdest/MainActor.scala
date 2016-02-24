@@ -7,6 +7,8 @@ case class StructureUpdate(name: String, state: String)
 
 case class ThermostatHeaterStateUpdate(id: String, statusType: HeaterState)
 
+case class ChargesUpdate(cost: Int)
+
 object HeaterState extends Enumeration {
   type HeaterState = Value
   val Off, Heating, Cooling = Value
@@ -20,10 +22,13 @@ object HeaterState extends Enumeration {
 
 class MainActor(firebaseURL: String, accessToken: String) extends Actor {
   val calculatorActor = context.actorOf(CalculatorActor.props())
+  val utilitiesActor = context.actorOf(UtilitiesCostCounterActor.props())
   val nestActor = context.actorOf(NestActor.props(accessToken, firebaseURL))
+  val webPageActor = context.actorOf(WebPageActor.props())
 
   def receive = {
     case stateUpdateMessage: ThermostatHeaterStateUpdate => calculatorActor ! stateUpdateMessage
+    case chargesUpdate: ChargesUpdate => utilitiesActor ! chargesUpdate
     case message => println("Received " + message)
   }
 }

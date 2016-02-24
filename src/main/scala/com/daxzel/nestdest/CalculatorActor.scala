@@ -45,13 +45,14 @@ class CalculatorActor() extends Actor {
   def receive = {
     case ThermostatHeaterStateUpdate(id: String, status: HeaterState) => {
       val newDateTime = LocalDateTime.now()
-      calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime)
+      context.parent ! ChargesUpdate(calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime))
       heatersInfo += (id -> HeaterInfo(status, newDateTime))
     }
     case _: UpdateStatusTick => {
       val newDateTime = LocalDateTime.now()
-      heatersInfo = heatersInfo.mapValues((heaterInfo) => {
-        calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime)
+      heatersInfo = heatersInfo.transform((id, heaterInfo) => {
+        print("calculating new value...")
+        context.parent ! ChargesUpdate(calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime))
         HeaterInfo(heaterInfo.previousState, newDateTime)
       })
     }
