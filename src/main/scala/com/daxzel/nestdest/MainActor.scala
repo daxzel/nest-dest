@@ -24,7 +24,7 @@ class MainActor(firebaseURL: String, accessToken: String) extends Actor {
   val calculatorActor = context.actorOf(CalculatorActor.props())
   val utilitiesActor = context.actorOf(UtilitiesCostCounterActor.props())
   val nestActor = context.actorOf(NestActor.props(accessToken, firebaseURL))
-  val webPageActor = context.actorOf(WebPageActor.props())
+  val webServer = new WebServer(context)
 
   def receive = {
     case stateUpdateMessage: ThermostatHeaterStateUpdate => calculatorActor ! stateUpdateMessage
