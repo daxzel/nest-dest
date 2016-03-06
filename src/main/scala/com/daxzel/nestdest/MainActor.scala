@@ -9,6 +9,8 @@ case class ThermostatHeaterStateUpdate(id: String, statusType: HeaterState)
 
 case class ChargesUpdate(cost: Int)
 
+case class UtilitiesCostUpdate(cost: Int, heaterState: HeaterState)
+
 object HeaterState extends Enumeration {
   type HeaterState = Value
   val Off, Heating, Cooling = Value
@@ -29,6 +31,7 @@ class MainActor(firebaseURL: String, accessToken: String) extends Actor {
   def receive = {
     case stateUpdateMessage: ThermostatHeaterStateUpdate => calculatorActor ! stateUpdateMessage
     case chargesUpdate: ChargesUpdate => utilitiesActor ! chargesUpdate
+    case utilitiesCostUpdate: UtilitiesCostUpdate => calculatorActor ! utilitiesCostUpdate
     case message => println("Received " + message)
   }
 }

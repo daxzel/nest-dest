@@ -2,12 +2,19 @@ package com.daxzel.nestdest
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Source, Flow}
 import com.typesafe.config.ConfigFactory
 
 class WebServer(val context: akka.actor.ActorContext) {
   val config = ConfigFactory.load()
+
+  val greeterWebSocketService =
+    Flow[Message].collect {
+      case tm: TextMessage ⇒ TextMessage(Source.single("Hello ") ++ tm.textStream)
+    }
 
   val routes = {
     get {
@@ -17,7 +24,7 @@ class WebServer(val context: akka.actor.ActorContext) {
         pathPrefix("resources") {
           getFromResourceDirectory("web-app/resources")
         } ~
-        pathPrefix("api/updateSettings") {
+        pathPrefix("api" / "updateSettings") {
           parameters(('heatingPrice.as[Int], 'coolingPrice.as[Int])) { (heatingPrice, coolingPrice) => {
             println(heatingPrice)
             println(coolingPrice)
@@ -25,11 +32,10 @@ class WebServer(val context: akka.actor.ActorContext) {
           }
           }
         }
-      //        pathPrefix("api/updateSettings" / IntNumber / IntNumber) { (heatingPrice, coolingPrice) => {
-      //          println(heatingPrice)
-      //          println(coolingPrice)
-      //          complete("test" + println("test"))
-      //        }
+
+      pathPrefix("api" / "websocket") {
+        handleWebsocketMessages(greeterWebSocketService)
+      }
     }
   }
 

@@ -22,7 +22,7 @@ class CalculatorActor() extends Actor {
 
   val utilityCosts = mutable.HashMap[HeaterState, Int]()
 
-  //to add GUI for that
+  //todo: add GUI for that
   utilityCosts += (HeaterState.Heating -> 30)
   utilityCosts += (HeaterState.Cooling -> 10)
 
@@ -48,6 +48,9 @@ class CalculatorActor() extends Actor {
       context.parent ! ChargesUpdate(calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime))
       heatersInfo += (id -> HeaterInfo(status, newDateTime))
     }
+    case UtilitiesCostUpdate(cost: Int, heaterState: HeaterState) => {
+      utilityCosts += (heaterState -> cost)
+    }
     case _: UpdateStatusTick => {
       val newDateTime = LocalDateTime.now()
       heatersInfo = heatersInfo.transform((id, heaterInfo) => {
@@ -61,6 +64,5 @@ class CalculatorActor() extends Actor {
   import scala.concurrent.duration._
   import ExecutionContext.Implicits.global
 
-  val cancellable = context.system.scheduler.schedule(5 seconds, 5 seconds, context.self,
-    UpdateStatusTick())
+  context.system.scheduler.schedule(5 seconds, 5 seconds, context.self, UpdateStatusTick())
 }
