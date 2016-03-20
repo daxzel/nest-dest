@@ -1,9 +1,11 @@
 .dest-form {
-    position: relative;
-    padding: 45px 15px 15px;
-    margin: 0 -15px 15px;
+    padding: 15px;
 }
 
-.dest-main-container {
-    padding-top: 15px;
+.vertical-center {
+    min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+    min-height: 100vh; /* These two lines are counted as one :-)       */
+
+    display: flex;
+    align-items: center;
 }

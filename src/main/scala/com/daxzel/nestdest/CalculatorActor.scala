@@ -43,22 +43,19 @@ class CalculatorActor() extends Actor {
     }
 
   def receive = {
-    case ThermostatHeaterStateUpdate(id: String, status: HeaterState) => {
+    case ThermostatHeaterStateUpdate(id: String, status: HeaterState) =>
       val newDateTime = LocalDateTime.now()
       context.parent ! ChargesUpdate(calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime))
       heatersInfo += (id -> HeaterInfo(status, newDateTime))
-    }
-    case UtilitiesCostUpdate(cost: Int, heaterState: HeaterState) => {
+    case UtilitiesCostUpdate(cost: Int, heaterState: HeaterState) =>
       utilityCosts += (heaterState -> cost)
-    }
-    case _: UpdateStatusTick => {
+    case _: UpdateStatusTick =>
       val newDateTime = LocalDateTime.now()
       heatersInfo = heatersInfo.transform((id, heaterInfo) => {
         print("calculating new value...")
         context.parent ! ChargesUpdate(calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime))
         HeaterInfo(heaterInfo.previousState, newDateTime)
       })
-    }
   }
 
   import scala.concurrent.duration._
