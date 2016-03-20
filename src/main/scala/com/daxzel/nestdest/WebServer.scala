@@ -15,7 +15,7 @@ class WebServer(val context: akka.actor.ActorContext, mainActor: ActorRef) {
   val webPageActor = context.actorOf(RouterActor.props())
 
   val greeterWebSocketService: Graph[FlowShape[Message, Message], Any]
-  = GraphDSL.create() { implicit builder =>
+            = GraphDSL.create() { implicit builder =>
     import GraphDSL.Implicits._
 
     val source = Source.actorPublisher[SummaryChargesUpdated](WebPageActor.props(webPageActor))
