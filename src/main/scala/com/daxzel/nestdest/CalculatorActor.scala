@@ -1,6 +1,7 @@
 package com.daxzel.nestdest
 
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 import akka.actor.{Actor, Props}
 import com.daxzel.nestdest.HeaterState.HeaterState
@@ -26,7 +27,7 @@ class CalculatorActor() extends Actor {
   utilityCosts += (HeaterState.Cooling -> 10)
 
   def secondsPast(firstDate: LocalDateTime, secondDate: LocalDateTime): Int =
-    secondDate.getSecond - firstDate.getSecond
+    firstDate.until(secondDate, ChronoUnit.SECONDS).toInt
 
   def calculateSpending(
                          utilityCosts: mutable.HashMap[HeaterState, Int],
@@ -44,7 +45,8 @@ class CalculatorActor() extends Actor {
   def receive = {
     case ThermostatHeaterStateUpdate(id: String, status: HeaterState) =>
       val newDateTime = LocalDateTime.now()
-      context.parent ! ChargesUpdate(calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime))
+      val spending = calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime)
+      context.parent ! ChargesUpdate(spending)
       heatersInfo += (id -> HeaterInfo(status, newDateTime))
 
     case ThermostatHeaterStateInit(id: String, status: HeaterState) =>
@@ -56,7 +58,8 @@ class CalculatorActor() extends Actor {
     case _: UpdateStatusTick =>
       val newDateTime = LocalDateTime.now()
       heatersInfo = heatersInfo.transform((id, heaterInfo) => {
-        context.parent ! ChargesUpdate(calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime))
+        val spending = calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime)
+        context.parent ! ChargesUpdate(spending)
         HeaterInfo(heaterInfo.previousState, newDateTime)
       })
   }
