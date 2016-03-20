@@ -11,9 +11,9 @@ function getSocketApiUrl() {
 }
 
 angular.module('destApp', ['ngWebSocket'])
-    .controller('DestController', ['$scope', 'utilities', function ($scope, utilities) {
+    .controller('DestController', ['$scope', 'utilities', function ($scope, socket) {
         var dest = this;
-        $scope.utilities = utilities;
+        $scope.socket = socket;
 
         dest.updateConfig = function () {
             $.get("/api/updateSettings", {
@@ -22,20 +22,17 @@ angular.module('destApp', ['ngWebSocket'])
             });
         }
     }]).factory('utilities', function ($websocket) {
-    // var dataStream = $websocket('ws://localhost:9000/api/websocket');
     var dataStream = $websocket(getSocketApiUrl());
-    var collection = [];
 
-    dataStream.onMessage(function (message) {
-        // collection.push(JSON.parse(message.data));
-        collection.push(message.data);
-        alert(message.data);
-    });
-
-    return {
-        collection: collection,
+    var socket = {
+        cost: 0,
         get: function () {
             dataStream.send(JSON.stringify({action: 'get'}));
         }
-    };
+    }
+    dataStream.onMessage(function (message) {
+        // collection.push(JSON.parse(message.data));
+        socket.cost = message.data
+    });
+    return socket;
 })

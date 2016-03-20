@@ -11,7 +11,9 @@ class UtilitiesCostCounterActor extends Actor {
   var calculatedCost = 0
 
   def receive = {
-    case ChargesUpdate(cost) => calculatedCost += cost
+    case ChargesUpdate(cost) =>
+      calculatedCost += cost
+      context.parent ! SummaryChargesUpdated(calculatedCost)
   }
 
 }
