@@ -83,9 +83,11 @@ class NestActor(accessToken: String, firebaseURL: String) extends Actor {
               if (stateMap.get(structId).isEmpty) {
                 stateMap += (structId -> mutable.HashMap[String, String]())
               }
-              val oldState = stateMap(structId).getOrElse(thermId, "n/a")
-              if (!oldState.equals("n/a") && !oldState.equals(status)) {
-                context.parent ! ThermostatHeaterStateUpdate(thermId, HeaterState.get(status))
+              stateMap.get(structId).get.get(thermId) match {
+                case Some(oldState: String) => if (!oldState.equals(status)) {
+                  context.parent ! ThermostatHeaterStateUpdate(thermId, HeaterState.get(status))
+                }
+                case _ => context.parent ! ThermostatHeaterStateInit(thermId, HeaterState.get(status))
               }
               stateMap(structId) += (thermId -> status)
             }

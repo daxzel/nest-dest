@@ -7,9 +7,11 @@ case class StructureUpdate(name: String, state: String)
 
 case class ThermostatHeaterStateUpdate(id: String, statusType: HeaterState)
 
+case class ThermostatHeaterStateInit(id: String, statusType: HeaterState)
+
 case class ChargesUpdate(cost: Int)
 
-case class SummaryChargesUpdated(cost: Int)
+case class SummaryChargesUpdated(cost: Long)
 
 case class UtilitiesCostUpdate(cost: Int, heaterState: HeaterState)
 
@@ -28,10 +30,11 @@ class MainActor(firebaseURL: String, accessToken: String) extends Actor {
   val calculatorActor = context.actorOf(CalculatorActor.props())
   val utilitiesActor = context.actorOf(UtilitiesCostCounterActor.props())
   val nestActor = context.actorOf(NestActor.props(accessToken, firebaseURL))
-  val webServer = new WebServer(context)
+  val webServer = new WebServer(context, self)
 
   def receive = {
     case stateUpdateMessage: ThermostatHeaterStateUpdate => calculatorActor ! stateUpdateMessage
+    case thermostatHeaterStateInit: ThermostatHeaterStateInit => calculatorActor ! thermostatHeaterStateInit
     case chargesUpdate: ChargesUpdate => utilitiesActor ! chargesUpdate
     case utilitiesCostUpdate: UtilitiesCostUpdate => calculatorActor ! utilitiesCostUpdate
     case summaryChargesUpdated: SummaryChargesUpdated => webServer.webPageActor ! summaryChargesUpdated

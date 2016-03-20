@@ -10,7 +10,7 @@ import akka.stream.actor.ActorPublisher
 import akka.stream.scaladsl._
 import com.typesafe.config.ConfigFactory
 
-class WebServer(val context: akka.actor.ActorContext) {
+class WebServer(val context: akka.actor.ActorContext, mainActor: ActorRef) {
   val config = ConfigFactory.load()
   val webPageActor = context.actorOf(RouterActor.props())
 
@@ -46,9 +46,9 @@ class WebServer(val context: akka.actor.ActorContext) {
         } ~
         pathPrefix("api" / "updateSettings") {
           parameters(('heatingPrice.as[Int], 'coolingPrice.as[Int])) { (heatingPrice, coolingPrice) => {
-            println(heatingPrice)
-            println(coolingPrice)
-            complete("test" + println("test"))
+            mainActor ! UtilitiesCostUpdate(heatingPrice, HeaterState.Heating)
+            mainActor ! UtilitiesCostUpdate(coolingPrice, HeaterState.Cooling)
+            complete("complete")
           }
           }
         } ~ pathPrefix("api" / "websocket") {

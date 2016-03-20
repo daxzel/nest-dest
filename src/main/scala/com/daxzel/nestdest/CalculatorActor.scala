@@ -22,7 +22,6 @@ class CalculatorActor() extends Actor {
 
   val utilityCosts = mutable.HashMap[HeaterState, Int]()
 
-  //todo: add GUI for that
   utilityCosts += (HeaterState.Heating -> 30)
   utilityCosts += (HeaterState.Cooling -> 10)
 
@@ -47,12 +46,16 @@ class CalculatorActor() extends Actor {
       val newDateTime = LocalDateTime.now()
       context.parent ! ChargesUpdate(calculateSpending(utilityCosts, heatersInfo.get(id), newDateTime))
       heatersInfo += (id -> HeaterInfo(status, newDateTime))
+
+    case ThermostatHeaterStateInit(id: String, status: HeaterState) =>
+      heatersInfo += (id -> HeaterInfo(status, LocalDateTime.now()))
+
     case UtilitiesCostUpdate(cost: Int, heaterState: HeaterState) =>
       utilityCosts += (heaterState -> cost)
+
     case _: UpdateStatusTick =>
       val newDateTime = LocalDateTime.now()
       heatersInfo = heatersInfo.transform((id, heaterInfo) => {
-        print("calculating new value...")
         context.parent ! ChargesUpdate(calculateSpending(utilityCosts, Option[HeaterInfo](heaterInfo), newDateTime))
         HeaterInfo(heaterInfo.previousState, newDateTime)
       })

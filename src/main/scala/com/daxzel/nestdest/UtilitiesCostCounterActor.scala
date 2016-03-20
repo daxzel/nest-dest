@@ -8,7 +8,7 @@ object UtilitiesCostCounterActor {
 
 class UtilitiesCostCounterActor extends Actor {
 
-  var calculatedCost = 0
+  var calculatedCost: Long = 0
 
   def receive = {
     case ChargesUpdate(cost) =>
