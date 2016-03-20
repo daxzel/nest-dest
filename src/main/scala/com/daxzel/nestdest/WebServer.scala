@@ -1,20 +1,41 @@
 package com.daxzel.nestdest
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Source, Flow}
+import akka.stream._
+import akka.stream.scaladsl._
 import com.typesafe.config.ConfigFactory
+
+import scala.concurrent.duration.FiniteDuration
 
 class WebServer(val context: akka.actor.ActorContext) {
   val config = ConfigFactory.load()
 
-  val greeterWebSocketService =
-    Flow[Message].collect {
-      case tm: TextMessage ⇒ TextMessage(Source.single("Hello ") ++ tm.textStream)
-    }
+  val greeterWebSocketService: Graph[FlowShape[Message, Message], Any]
+  = GraphDSL.create() { implicit builder =>
+    import GraphDSL.Implicits._
+
+    val source = Source
+      .tick[TextMessage](FiniteDuration(5, TimeUnit.SECONDS), FiniteDuration(5, TimeUnit.SECONDS), TextMessage("2324"))
+
+    val statsSource = builder.add(source)
+    val webSocketInlet = builder.add(Flow[Message].collect[TextMessage]({
+      case message: TextMessage => message
+    }))
+
+    val merge = builder.add(Merge[TextMessage](2))
+
+    val map = builder.add(Flow[TextMessage]
+      .map[TextMessage]({ x: TextMessage => x}))
+
+    statsSource ~> merge
+    webSocketInlet ~> merge ~> map
+    FlowShape[Message, TextMessage](webSocketInlet.in, map.out)
+  }
 
   val routes = {
     get {
@@ -31,10 +52,8 @@ class WebServer(val context: akka.actor.ActorContext) {
             complete("test" + println("test"))
           }
           }
-        }
-
-      pathPrefix("api" / "websocket") {
-        handleWebsocketMessages(greeterWebSocketService)
+        } ~ pathPrefix("api" / "websocket") {
+          handleWebsocketMessages(Flow.fromGraph(greeterWebSocketService))
       }
     }
   }
